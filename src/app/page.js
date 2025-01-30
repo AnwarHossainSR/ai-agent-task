@@ -1,5 +1,4 @@
 "use client"; // Mark this as a Client Component
-
 import axios from "axios";
 import { useEffect, useState } from "react";
 
@@ -16,15 +15,11 @@ export default function Home() {
     setLoading(true);
     setError("");
     setResponse(null);
-
     try {
       const res = await axios.post("/api/ai", { prompt });
-
       console.log("AI Response:", res.data);
-
       if (res?.data) {
         setResponse(res.data);
-
         if (res.data.action === "fetched" && Array.isArray(res.data.data)) {
           setTodos(res.data.data);
         } else if (
@@ -81,13 +76,20 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="relative flex items-center justify-center min-h-screen bg-gray-100 p-6">
+    <div className="relative flex items-center justify-center min-h-screen bg-white p-6">
+      {/* Backdrop Blur for Error Modal */}
+      {isClient && showErrorModal && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-40"
+          onClick={(e) => e.stopPropagation()} // Prevent clicks on the backdrop
+        ></div>
+      )}
+
       {/* Main content */}
-      <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-lg z-10">
+      <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-lg z-50 relative">
         <h1 className="text-3xl font-semibold text-center text-indigo-600 mb-6">
           Todo AI Assistant
         </h1>
-
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <textarea
@@ -95,10 +97,9 @@ export default function Home() {
               onChange={(e) => setPrompt(e.target.value)}
               placeholder="Ask something like: 'Create a todo', 'Get all todos', 'Get stats', etc."
               rows="6"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-gray-50 text-gray-800" // Fixed text color
             />
           </div>
-
           <button
             type="submit"
             disabled={loading}
@@ -109,12 +110,13 @@ export default function Home() {
             {loading ? "Processing..." : "Submit"}
           </button>
         </form>
-
         <div className="mt-6">
           <h3 className="text-xl font-semibold text-indigo-700">
             AI Response:
           </h3>
-          <div className="mt-2 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+          <div className="mt-2 p-4 bg-gray-50 border border-gray-200 rounded-lg text-gray-800">
+            {" "}
+            {/* Fixed text color */}
             {response ? (
               <div>
                 <strong>Action: </strong>
@@ -140,13 +142,14 @@ export default function Home() {
             )}
           </div>
         </div>
-
         {todos?.length > 0 && (
           <div className="mt-6">
             <h3 className="text-xl font-semibold text-indigo-700">
               All Todos:
             </h3>
-            <table className="min-w-full mt-4 border-collapse">
+            <table className="min-w-full mt-4 border-collapse text-gray-800">
+              {" "}
+              {/* Fixed text color */}
               <thead>
                 <tr>
                   <th className="px-4 py-2 text-left border-b">ID</th>
@@ -172,9 +175,14 @@ export default function Home() {
 
       {/* Error Popup */}
       {isClient && showErrorModal && (
-        <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-6 rounded-lg shadow-lg z-50">
-          <h3 className="text-xl font-semibold text-red-500">Error</h3>
-          <p className="mt-2 text-gray-600">{error}</p>
+        <div className="fixed inset-0 flex items-center justify-center z-50">
+          <div
+            className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full text-center"
+            onClick={(e) => e.stopPropagation()} // Prevent clicks inside the modal from closing it
+          >
+            <h3 className="text-xl font-semibold text-red-500">Error</h3>
+            <p className="mt-2 text-gray-800">{error}</p>{" "}
+          </div>
         </div>
       )}
     </div>
