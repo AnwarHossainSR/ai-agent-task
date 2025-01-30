@@ -1,22 +1,9 @@
-import { GoogleGenerativeAI } from "@google/generative-ai"; // Import the Google Generative AI SDK
-import bodyParser from "body-parser";
-import cors from "cors";
-import dotenv from "dotenv";
-import express from "express";
-import { db } from "./db/index.js"; // Database connection
+import { db } from "@/lib/db"; // Assuming you have a database utility
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
-dotenv.config();
-const app = express();
-
-// Initialize Google Generative AI model
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
 const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-app.use(express.json());
-app.use(cors());
-app.use(bodyParser.json());
-
-// System Prompt for AI interaction
 const systemPrompt = `
 You are an assistant with access to a PostgreSQL database that stores a "todos" table. This table contains a list of tasks, each with the following fields:
 - 'id' (integer, primary key, auto-incremented)
@@ -48,72 +35,68 @@ For each action, **ONLY** return the corresponding SQL query or a clear response
 **Only return the SQL query and no additional text.** Your response should be the query or action, nothing else.
 `;
 
-// AI interaction endpoint
-app.post("/ai", async (req, res) => {
-  const { prompt } = req.body;
-  console.log("prompt", prompt); // Log user query
+export async function POST(req) {
+  const { prompt } = await req.json();
+  console.log("prompt", prompt);
 
   try {
-    // Construct the prompt with the system instructions and user query
     const fullPrompt = `${systemPrompt}\nUser Query: ${prompt}\nAI Response:`;
-
-    // Call Google's Generative AI API with the prompt
     const result = await model.generateContent(fullPrompt);
     const aiAnswer = result.response.text().trim();
-    console.log("aiAnswer", aiAnswer); // Log AI response (SQL query)
+    console.log("aiAnswer", aiAnswer);
 
-    // Directly execute the AI's SQL query based on its action
-    const queryType = aiAnswer.split(" ")[0]; // Extract the query type (INSERT, SELECT, UPDATE, etc.)
+    const queryType = aiAnswer.split(" ")[0];
 
     if (queryType === "INSERT") {
-      // Execute the SQL INSERT query to add a new todo
       await db.execute(aiAnswer);
-      res.json({ action: "created", data: "Todo added successfully." });
+      return Response.json({
+        action: "created",
+        data: "Todo added successfully.",
+      });
     } else if (queryType === "SELECT") {
-      // Execute the SQL SELECT query to fetch todos
-      const todos = await db.execute(aiAnswer); // Execute the raw SQL query
-      res.json({ action: "fetched", data: todos.rows }); // Send the result back to frontend
+      const todos = await db.execute(aiAnswer);
+      return Response.json({ action: "fetched", data: todos.rows });
     } else if (queryType === "UPDATE") {
-      // Execute the SQL UPDATE query to modify a todo
       await db.execute(aiAnswer);
-      res.json({ action: "updated", data: "Todo updated successfully." });
+      return Response.json({
+        action: "updated",
+        data: "Todo updated successfully.",
+      });
     } else if (queryType === "DELETE") {
-      // Execute the SQL DELETE query to remove a todo
       await db.execute(aiAnswer);
-      res.json({ action: "deleted", data: "Todo deleted successfully." });
+      return Response.json({
+        action: "deleted",
+        data: "Todo deleted successfully.",
+      });
     } else if (aiAnswer.includes("ILIKE")) {
-      // Execute the SQL query to search todos based on the AI response
       const searchResults = await db.execute(aiAnswer);
-      res.json({ action: "searched", data: searchResults.rows });
+      return Response.json({ action: "searched", data: searchResults.rows });
     } else if (aiAnswer.includes("COUNT(*)")) {
-      // Execute the SQL COUNT query to get the stats
       const stats = await db.execute(aiAnswer);
-      res.json({ action: "stats", data: stats.rows[0] });
+      return Response.json({ action: "stats", data: stats.rows[0] });
     } else {
-      res.status(400).send("Unrecognized action.");
+      return Response.json({ error: "Unrecognized action." }, { status: 400 });
     }
   } catch (error) {
-    console.log("Error processing AI request:", error.message); // Log the full error for debugging
+    console.log("Error processing AI request:", error.message);
 
-    // Check if the error message contains '503' to identify if it's a Service Unavailable error
     if (error.message && error.message.includes("503")) {
-      return res
-        .status(503)
-        .send("The server is busy. Please try again later.");
+      return Response.json(
+        { error: "The server is busy. Please try again later." },
+        { status: 503 }
+      );
     }
 
-    // Handle network errors (no response from the server)
     if (error.request) {
-      return res.status(500).send("Network error occurred. Please try again.");
+      return Response.json(
+        { error: "Network error occurred. Please try again." },
+        { status: 500 }
+      );
     }
 
-    // General error handling for non-Axios errors
-    res.status(500).send("Error processing request");
+    return Response.json(
+      { error: "Error processing request" },
+      { status: 500 }
+    );
   }
-});
-
-// Start the server
-const port = process.env.PORT || 3000;
-app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
-});
+}

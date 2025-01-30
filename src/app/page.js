@@ -1,47 +1,45 @@
+"use client"; // Mark this as a Client Component
+
 import axios from "axios";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-const TodoAIComponent = () => {
-  const [prompt, setPrompt] = useState(""); // Store the user's input prompt
-  const [response, setResponse] = useState(null); // Store the AI response
-  const [loading, setLoading] = useState(false); // Track loading state
-  const [error, setError] = useState(""); // Store any errors
+export default function Home() {
+  const [prompt, setPrompt] = useState("");
+  const [response, setResponse] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const [todos, setTodos] = useState([]);
-  const [showErrorModal, setShowErrorModal] = useState(false); // For displaying error modal
+  const [showErrorModal, setShowErrorModal] = useState(false);
 
-  // Handle sending the prompt to the backend
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setError(""); // Reset the error message
-    setResponse(null); // Reset the response
+    setError("");
+    setResponse(null);
 
     try {
-      const res = await axios.post("http://localhost:3000/ai", { prompt });
+      const res = await axios.post("/api/ai", { prompt });
 
-      console.log("AI Response:", res.data); // Log the full response to inspect it
+      console.log("AI Response:", res.data);
 
       if (res?.data) {
-        setResponse(res.data); // Set the AI's response in the state
+        setResponse(res.data);
 
-        // Handle different actions based on the response
         if (res.data.action === "fetched" && Array.isArray(res.data.data)) {
-          setTodos(res.data.data); // Set todos for display
+          setTodos(res.data.data);
         } else if (
           res.data.action === "created" ||
           res.data.action === "updated" ||
           res.data.action === "deleted"
         ) {
-          // Handle success messages for create, update, delete
-          setTodos([]); // Clear todos if necessary
+          setTodos([]);
         } else if (
           res.data.action === "searched" &&
           Array.isArray(res.data.data)
         ) {
-          setTodos(res.data.data); // Set search results
+          setTodos(res.data.data);
         } else if (res.data.action === "stats") {
-          // Handle stats response
-          setTodos([]); // Clear todos if necessary
+          setTodos([]);
         } else {
           setError("Unexpected response format.");
           showErrorModalWithTimeout("Unexpected response format.");
@@ -53,31 +51,34 @@ const TodoAIComponent = () => {
     } catch (err) {
       console.log("err", err);
       if (err.response && err.response.status === 503) {
-        // Handle the 503 Service Unavailable error
         setError("The server is currently busy. Please try again later.");
         showErrorModalWithTimeout(
           "The server is currently busy. Please try again later."
         );
       } else {
-        // Handle other errors
         setError("An error occurred while processing your request.");
         showErrorModalWithTimeout(
           "An error occurred while processing your request."
         );
       }
     } finally {
-      setLoading(false); // Turn off loading spinner
+      setLoading(false);
     }
   };
 
-  // Function to show the error modal and auto-hide it after 4 seconds
   const showErrorModalWithTimeout = (errorMessage) => {
     setError(errorMessage);
     setShowErrorModal(true);
     setTimeout(() => {
       setShowErrorModal(false);
-    }, 4000); // Hide the error after 4 seconds
+    }, 4000);
   };
+
+  // Ensure the error modal is only rendered on the client side
+  const [isClient, setIsClient] = useState(false);
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   return (
     <div className="relative flex items-center justify-center min-h-screen bg-gray-100 p-6">
@@ -140,7 +141,6 @@ const TodoAIComponent = () => {
           </div>
         </div>
 
-        {/* Conditionally show the todos table */}
         {todos?.length > 0 && (
           <div className="mt-6">
             <h3 className="text-xl font-semibold text-indigo-700">
@@ -171,14 +171,12 @@ const TodoAIComponent = () => {
       </div>
 
       {/* Error Popup */}
-      {showErrorModal && (
-        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 bg-white p-4 rounded-lg shadow-lg z-50">
+      {isClient && showErrorModal && (
+        <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-6 rounded-lg shadow-lg z-50">
           <h3 className="text-xl font-semibold text-red-500">Error</h3>
           <p className="mt-2 text-gray-600">{error}</p>
         </div>
       )}
     </div>
   );
-};
-
-export default TodoAIComponent;
+}

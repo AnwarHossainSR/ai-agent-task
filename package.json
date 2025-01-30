@@ -1,31 +1,30 @@
 {
-  "name": "ai-agent",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "type": "module",
+  "name": "todo-ai-app",
+  "version": "0.1.0",
+  "private": true,
   "scripts": {
-    "dev": "nodemon server.js",
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
     "generate": "npx drizzle-kit generate",
     "migrate": "npx drizzle-kit migrate"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "dependencies": {
     "@google/generative-ai": "^0.21.0",
     "axios": "^1.7.9",
-    "body-parser": "^1.20.3",
-    "cors": "^2.8.5",
-    "dotenv": "^16.4.7",
-    "drizzle-orm": "^0.39.0",
-    "express": "^4.21.2",
-    "nodemon": "^3.1.9",
-    "openai": "^4.80.1",
-    "pg": "^8.13.1"
+    "drizzle-kit": "^0.30.4",
+    "drizzle-orm": "^0.39.1",
+    "next": "15.1.6",
+    "pg": "^8.13.1",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
   },
   "devDependencies": {
-    "@types/pg": "^8.11.11",
-    "drizzle-kit": "^0.30.3"
+    "@eslint/eslintrc": "^3",
+    "eslint": "^9",
+    "eslint-config-next": "15.1.6",
+    "postcss": "^8",
+    "tailwindcss": "^3.4.1"
   }
 }
